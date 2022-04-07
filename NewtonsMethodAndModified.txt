@@ -1,0 +1,38 @@
+def newtonsMethod_a(x_i):
+    pk_list = [x_i]             # initialize p_k list
+    sequence_alpha = []         # list of alphas
+    f_double = 2 * math.exp(1 - 1) - 2          # 2nd derivative eval at true root
+    f_triple = 2 * math.exp(1 - 1)              # 3rd derivative eval at true root
+    f_r = 2 * math.exp(1 - 1) - 1 ** 2 - 1      # eval at true root
+    f_prime_r = 2 * math.exp(1 - 1) - 2 * 1     # eval at true root
+    for iter_count in range(100):               # for loop through iteration
+        print('Outside', iter_count, pk_list)
+        f = 2 * math.exp(pk_list[iter_count] - 1) - pk_list[iter_count] ** 2 - 1        # function eval at ...
+        f_prime = 2 * math.exp(pk_list[iter_count] - 1) - 2 * pk_list[iter_count]      # 1st derivative at ...
+        x_ip1 = pk_list[iter_count] - (f/f_prime)
+        pk_list.append(x_ip1)
+        if len(pk_list) >= 3 and pk_list[iter_count] != x_ip1:
+            #ak = math.log10(abs(x_ip1 - x_ip2)/abs(x_ip2 - x_ip3) if abs(x_ip1 - x_ip2)/abs(x_ip2 - x_ip3) > 0 else 1)
+            print('Inside', iter_count+1, pk_list)
+            ak = math.log10(
+                abs(pk_list[iter_count+1] - pk_list[iter_count]) / abs(pk_list[iter_count] - pk_list[iter_count-1]))      # changed to itercount+1
+            #print('alpha_num', ak)
+            ak2 = math.log10(
+                abs(pk_list[iter_count] - pk_list[iter_count - 1]) / abs(pk_list[iter_count - 1] - pk_list[iter_count - 2]))      # changed to itercount+1
+            #print('alpha_denom', ak2)
+            alpha = ak/ak2
+            print('alpha', alpha)
+            sequence_alpha.append(alpha)
+            print('alpha_sequence', sequence_alpha)
+            #print('length', len(sequence_alpha))
+            #print('iter_count', iter_count)
+            #print('pk_list', pk_list)
+        if x_ip1 == pk_list[iter_count]:
+            forward_error = abs(x_ip1 - 1)
+            backward_error = 2 * math.exp(x_ip1 - 1) - x_ip1 ** 2 - 1
+            iter_count += 1                                     #
+            #print('sequence alpha', sequence_alpha)
+            #print('f_r', f_r)
+            return (f_r, f_prime_r, f_double, f_triple, iter_count, x_ip1, pk_list, sequence_alpha, forward_error,
+                    backward_error)
+        iter_count += 1

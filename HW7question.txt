@@ -1,0 +1,77 @@
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+#Program 6.1 Euler’s Method for Solving Initial Value Problems
+#Use with ydot.m to evaluate rhs of differential equation
+# Input: interval inter, initial value y0, number of steps n
+# Output: time steps t, solution y
+# Example usage: euler([0 1],1,10)
+# function [t,y]=euler(inter,y0,n) t(1)=inter(1)
+# y(1)=y0
+# h=(inter(2)-inter(1))/n
+# n = (b-a)/h, h = step size
+#a,b = interval
+# y0 = initial value = y(a)
+
+def euler(f, a, b, y0, h):
+    n = int((b-a)/h)
+    t = np.zeros(n, dtype='float')
+    y = np.zeros(n+1)
+    print(y)
+    t[0] = a
+    y[0] = y0
+    for i in range(1,n+1):
+        print(i)
+        t[i] = t[i-1] + h
+        y[i] = y[i-1] + h*f(t[i-1], y[i-1])
+        print(t[i])
+        print(y[i])
+    return t,y
+
+def fa(t,y):
+    return t
+
+def fb(t,y):
+    return (t**2) * y
+
+def fc(t,y):
+    return 2*(t+1)*y
+
+def fa4(t,y):
+    return t+y
+
+def fb4(t,y):
+    return t-y
+
+def fc4(t, y):
+    return (4*t)-(2*y)
+
+
+### To do:
+# Change z, interval, and number of steps.
+
+if __name__ == "__main__":
+    hList = [0.1, 0.05, 0.025]
+    functionList = [fa, fb, fc, fa4, fb4, fc4]
+    a = 0
+    b = 1
+    ivalue = [1, 0]
+
+    plt.figure(1)
+    for step in hList:
+        for function, y0 in zip(functionList, ivalue):
+            t,y = euler(function, a, b, y0, step)
+            plt.plot(t,y, label = f'{function}')
+        plt.xlabel('h')
+        plt.ylabel('Error')
+        plt.title('Loglog Plot h vs error')
+        plt.legend(loc='best')
+        plt.grid(True)
+    plt.show()
+
+
+
