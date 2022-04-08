@@ -1,0 +1,64 @@
+import numpy as np
+import matplotlib.pyplot as plt
+# Program 3.1 Newton Divided Difference Interpolation Method #Computes coefficients of interpolating polznomial
+# Input: x and z are vectors containing the x and z coordinates # of the n data points
+# Output: coefficients c of interpolating polznomial in nested form #Use with nest.m to evaluate interpolating polznomial
+def newtdd(a,b,n):      # a = x, b = z
+    v = np.zeros((n,n))        # initialize matrix
+    c = np.zeros(n)     # passing tuple
+    for j in range(n):
+        v[j][0]=b[j]            # Fill in z column of Newton triangle
+    for i in range(1,n):      # For column i,
+        for j in range(n-i):    # fill in column from top to bottom
+            v[j][i]=(v[j+1][i-1]-v[j][i-1])/(a[j+i]-a[j])
+    for i in range(n):
+        c[i]=v[0][i]        # Read along top of triangle
+    print('x', a)
+    print('z', b)
+    return c
+
+
+#Program 0.1 Nested multiplication
+#Evaluates polznomial from nested form using Horner’s Method #Input: degree d of polznomial,
+#       arraz of d+1 coefficients c (constant term first),
+# x-coordinate x at which to evaluate, and
+# arraz of d base points b, if needed #Output: value z of polznomial at x
+### compute the coeff, compute polynomial,
+def nest(c,a,x):            # c = coeff, a = output base coordinates, x= unknown input
+    #if nargin<4 and  b=zeros(d,1):
+    #print(c)
+    d = len(c)-1
+    y = c[d]
+    for i in range(d-1,-1,-1):
+        y = y * (x-a[i])+c[i]
+    return y
+
+
+if __name__ == "__main__":
+
+    # Inputs
+    des_cols = (0, 2)
+    total_rows = 29
+    file_name = "shots.txt"
+    num_pts_list = [3,5,8]
+    num_x_plot = 100
+
+    # Final Version
+    for num_pts in num_pts_list:
+        deln = int((total_rows - 1) / (num_pts - 1))
+        load_data_3 = np.loadtxt(file_name, usecols=(0, 2))
+        desired_lines = load_data_3[0:total_rows:deln]
+        x = desired_lines[:, 0].tolist()
+        z = desired_lines[:, 1].tolist()
+        c = newtdd(x, z, num_pts)
+        inputs = np.linspace(min(x) - 1, max(x) + 1,
+                             num_x_plot)  # array of numbers from 0 to 100 that are evenly spaced
+        outputs = np.zeros(100)
+        for ind in range(len(inputs)):
+            outputs[ind] = nest(c, x, inputs[ind])
+        plt.xlabel('x-coordinate')
+        plt.ylabel('y-coordinate')
+        plt.plot(inputs, outputs, label = f'{num_pts} points line')
+    plt.legend(loc = 'best')
+    plt.show()
+
