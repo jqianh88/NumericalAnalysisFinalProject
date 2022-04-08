@@ -76,7 +76,8 @@ def adams_moult2(f, w0, T, numTstep, coeff):        # Make 4th order implicit
     #print(rktemp)
     w[:, 0:2] = rktemp[0]
     #print(w[:, 0:2], '0-2')
-    for i, time in enumerate(t):
+    print(t)
+    for i, time in enumerate(t[2:]):
         # Initialize ts
         ti = time
         tim1 = time - dt
@@ -199,7 +200,7 @@ def adams_pcec(f, w0, T, numTstep, coeff):
     #print(rktemp)
     w[:,0:4] = rktemp[0]
     #print(w[:,0:4])                 # clean up 111-114
-    for i, time in enumerate(t):
+    for i, time in enumerate(t[4:]):
         # Initialize ts
         ti = time
         tim1 = time - dt
@@ -208,23 +209,23 @@ def adams_pcec(f, w0, T, numTstep, coeff):
         tip1 = time + dt
 
         # Initialize ws
-        wi = w[:, [i]]
-        wim1 = w[:, [i-1]]
-        wim2 = w[:, [i-2]]
-        wim3 = w[:, [i-3]]
+        wi = w[:, [i+4]]
+        wim1 = w[:, [i+4-1]]
+        wim2 = w[:, [i+4-2]]
+        wim3 = w[:, [i+4-3]]
 
         # Adams Bashforth: wim1 = wi minus 1
-        wip1p = w[:, [i]] + (dt/24)*(55*f(wi, ti, coeff) -
+        wip1p = w[:, [i+4]] + (dt/24)*(55*f(wi, ti, coeff) -
                                     59*f(wim1, tim1, coeff) +
                                     37*f(wim2, tim2, coeff) -
                                     9*f(wim3, tim3, coeff))
 
         # Adams Moulton: wip1 = wi plus 1
-        wip1c = w[:, [i]] + (dt/24)*(9*f(wip1p, tip1, coeff) +
+        wip1c = w[:, [i+4]] + (dt/24)*(9*f(wip1p, tip1, coeff) +
                                     19*f(wi, ti, coeff) -
                                     5*f(wim1, tim1, coeff) +
                                     f(wim2, tim2, coeff))
-        w[:, [i + 1]] = wip1c                       # Store in w
+        w[:, [i +4 + 1]] = wip1c                       # Store in w
     return (w, t)
 
 
@@ -249,12 +250,12 @@ if __name__ == '__main__':
     T = 10
     numTstep = 100
     coeff = (Beta, A, alpha, x)
-    print(euler(f, w0, T, numTstep, coeff), 'euler')  # 126723.69846774
+    #print(euler(f, w0, T, numTstep, coeff), 'euler')  # 126723.69846774
     #print(comp_trap(f, w0, T, numTstep, coeff), 'comptrap')   # 126767.24327992
     #print(RK4(f, w0, T, numTstep, coeff), 'Rk4')     # 126767.21446085
-    #print(adams_moult2(f, w0, T, numTstep, coeff), 'moul2')  # 124210.85982367
+    print(adams_moult2(f, w0, T, numTstep, coeff), 'moul2')  # 124210.85982367
     #print(adams_bash(f, w0, T, numTstep, coeff), 'bash')  #  126783.3287603
-    #print(adams_pcec(f, w0, T, numTstep, coeff), 'pcec')    # 126783.3287603
+    print(adams_pcec(f, w0, T, numTstep, coeff), 'pcec')    # 126783.3287603
 
 
 
