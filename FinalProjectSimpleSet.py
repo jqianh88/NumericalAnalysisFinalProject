@@ -132,6 +132,7 @@ def adams_bash(f, w0, T, numTstep, coeff):    # make 4th order explicit compare
     t.append(T)                                       # Append Final time step
     # w= numpy vector, t = list
     return (w, t)
+#ddfs
 
 
 
