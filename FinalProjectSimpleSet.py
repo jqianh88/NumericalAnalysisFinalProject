@@ -54,12 +54,15 @@ def euler(ftest, w0, T, numTstep, coeff):
     # For loop to calculate w_i+1
     for i, time in enumerate(t):            # i = index, time = value
         w_i = w[:, [i]]                         # vector w at current timestep
-        wnext = w_i + dt*f(w_i, time, coeff)           # FE step
+        wnext = w_i + dt*ftest(w_i, time, coeff)           # FE step
         w[:, [i + 1]] = wnext                       # Store in w
 
     t.append(T)                                       # Append Final time step
     # w= numpy vector, t = list
-    return (w, t)
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
+    return (wel1, wel2, t)
 
 
 
@@ -77,45 +80,12 @@ def comp_trap(f, w0, T, numTstep, coeff):
         w[:, [i + 1]] = wnext                       # Store in w
 
     t.append(T)                                       # Append Final time step
-    # w= numpy vector, t = list
-    return (w, t)
 
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
 
-
-'''def adams_moult3(f, w0, T, numTstep, coeff):        # Make 4th order implicit
-    dt = T/numTstep                                      # delta t = step size
-    w = np.zeros((w0.size, numTstep+1))                 # initialize w sol
-    t = [dt * time for time in range(numTstep)]     # t for each timestep
-    w[:,[0]] = w0                           # initialize w0
-    rktemp = RK4(f, w0, T, 2, coeff)            # 3 initials   2x2
-    #print(rktemp)
-    w[:, 0:3] = rktemp[0]
-    #print(w[:, 0:3], '0-3')
-    #print(t)
-    for i, time in enumerate(t[2:]):
-        # Initialize ts
-        ti = time
-        tim1 = time - dt
-        tim2 = time -2*dt
-        tip1 = time + dt
-
-        # Initialize ws
-        wi = w[:, [i+2]]
-        wim1 = w[:, [i+2-1]]
-        wim2 = w[:, [i+2-2]]
-        wip1 = w[:, [i+2+1]]
-
-        # Adams Moulton: wip1 = wi plus 1
-        wip1 = wi + (dt / 24) * (9 * ftest(wip1, tip1, coeff) +
-                                         19 * ftest(wi, ti, coeff) -
-                                         5 * ftest(wim1, tim1, coeff) +
-                                         ftest(wim2, tim2, coeff))
-        w[:, [i + 2+1]] = wip1  # Store in w
-
-    t.append(T)                                       # Append Final time step
-    # w= numpy vector, t = list
-    return (w, t)
-'''
+    return (wel1, wel2, t)
 
 
 """
@@ -130,72 +100,160 @@ time step and t, a list of the time corresponding to the values of x.
 Observations: needs small time step otherwise it blows up
 """
 
-def RK4(f, w0, T, numTstep, coeff):
+def RK4(ftest, w0, T, numTstep, coeff):
     dt = T/numTstep                                # delta t = step size = h
     w = np.zeros((w0.size, numTstep+1))                 # initialize w sol
     t = [dt * time for time in range(numTstep)]     # t for each timestep
     w[:,[0]] = w0                           # initialize w0
-    #print(w[:,[0]])
+
     # For loop to calculate w_i+1
 
     for i, time in enumerate(t):
         w_i = w[:, [i]]
-        #print(w_i, 'i')
+
         # s1 section
-        s1= f(w_i, time, coeff)
-        #print(s1, 's1')
+        s1= ftest(w_i, time, coeff)
+
         # s2 section
-        s2 = f(w_i + (dt/2)*s1, time + (dt/2), coeff)
-        #print(s2, 's2')
+        s2 = ftest(w_i + (dt/2)*s1, time + (dt/2), coeff)
 
         # s3 section
-        s3 = f(w_i + (dt/2)*s2, time + (dt/2), coeff)
-        #print(s3, 's3')
+        s3 = ftest(w_i + (dt/2)*s2, time + (dt/2), coeff)
+
         # s4 section
-        s4 = f(w_i + (dt*s3), time + dt, coeff)
-        #print(s4, 's4')
+        s4 = ftest(w_i + (dt*s3), time + dt, coeff)
 
         w[:, [i + 1]] = w_i + (dt/6)*(s1 + (2*s2) + (2*s3) + s4)
-        #print(w[:, [i + 1]], 'i+1')
+
     t.append(T)                           # Append Final time step
 
-    return (w, t)
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
+
+    return (wel1, wel2, t)
 
 
-def adams_bash(f, w0, T, numTstep, coeff):    # make 4th order explicit
+'''
+Adams Moulton Section 
+'''
+def fmoult(c0, c1, c2, Nfunc):
+    f = c0 + c1*Nfunc + c2*Nfunc**2
+    return f
+
+def newtons(b0, b1, b2, w):        #w: initial guess
+    fw = b0 + b1*w + b2*w**2
+    fprime = b1 + 2*b2*w
+    z = w - (fw/fprime)
+    return z
+
+# Newton's method twice, approximation from 2-3 runs, set up quadratic formula
+# - b1 + sqrt(b1^2 - 4ac)/(2b0)
+# two quadratic formula values
+# newton's - q1, ... newton's -q2 whichever smaller set the solution to the
+# one that is closer (smaller difference)
+
+# Adjust tolerance if it takes too long, should not be more than 4 times
+
+def adams_moult3(w0, T, numTstep, coeff):        # Make 4th order implicit
+    dt = T/numTstep                                      # delta t = step size
+    w = np.zeros((w0.size, numTstep+1))                 # initialize w sol
+    funcs = np.zeros(numTstep+1)         # initialize fs (1 row array)
+    t = [dt * time for time in range(numTstep)]     # t for each timestep
+    w[:,[0]] = w0                           # initalize w0
+    funcs[0] = coeff[1] - coeff[2]*coeff[3]*w0[1] * w0[0]
+    rktemp = RK4(f, w0, T, 2, coeff)            # 3 initials   2x2
+    #print(rktemp)
+    w[:, 0:3] = rktemp[0]               # ignore last vlue from rk4
+
+    # Beta, A, alpha, x
+    c0 = coeff[1]                       #A
+    c2 = coeff[3] * coeff[2]            #x*alpha
+    c1 = (-coeff[3])*(coeff[2]*w0[0] + w0[1])   # -x*(alpha * N(0) + n(0))
+
+    b2 = (dt / 24)*(9*c2)
+    print(w[:,0:3])
+    for i, time in enumerate(t[2:]):        # start from i = 2, so shift by 2
+        j = i + 2
+        funcs[j] = fmoult(c0, c1, c2, w[0, [j]])
+        # Define bs
+        b0 = w[0, [j]] + (dt / 24) * (9 * c0 +
+                                         19 * funcs[j] -
+                                         5 * funcs[j-1] +
+                                         funcs[j-2])
+        b1 = -1 - (dt/24)*(9*c1)
+
+        # Solve Quadratic:
+        diff = 1
+        approx = w[0, [j]]
+
+        # Loop through until diff < TOL to compute using Newton's
+        while diff > 10**-4:
+            approx2 = newtons(b0, b1, b2, approx)       # update
+            diff = abs(approx2-approx)
+            approx = approx2
+        w[0, [j+1]] = approx              # Approximate root = next step of i+1
+        # replace 149 with q1 or q2 based on whatever you chose, takes away
+        # error
+
+        # n(t_i+1) = -alpha*N(t_i+1) + (alpha + Beta)*At_i+1 + alpha*N(0) +n(0)
+        w[1, [j+1]] = (-coeff[2] * w[0, [j+1]]) + (coeff[2]+coeff[0])* coeff[
+            1]*(time+dt) + coeff[2]* w[0,[0]] + w[1,[0]]
+
+        # (-x)(alpha+B)A*dt
+        c1 += (-coeff[3])*(coeff[2]+coeff[0])* coeff[1] * dt
+
+    # Append Final time step
+    t.append(T)
+
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
+
+    return (wel1, wel2, t)
+
+
+
+
+def adams_bash(ftest, w0, T, numTstep, coeff):    # make 4th order explicit
     # compare
     dt = T/numTstep                                      # delta t = step size
     w = np.zeros((w0.size, numTstep+1))                 # initialize w sol
     t = [dt * time for time in range(numTstep)]     # t for each timestep
     #w[:,[0]] = w0                           # initialize w0
-    rktemp = RK4(f, w0, T, 3, coeff)        # 4 initials   2x4
-    print(rktemp)
+    rktemp = RK4(ftest, w0, T, 3, coeff)        # 4 initials   2x4
+
     w[:,0:4] = rktemp[0]
-    print(w[:,[0]], 'here')
+
     for i, time in enumerate(t[3:]):
+        j = i + 3
         # Initialize ts
         ti = time
         tim1 = time - dt
         tim2 = time - 2 * dt
         tim3 = time - 3 * dt
-        print(ti, tim1, tim2, tim3, 'ts')
+
         # Initialize ws
-        wi = w[:, [i + 3]]          #w3  i + 3
-        wim1 = w[:, [i + 2]]    #w2 i + 3 - 1
-        wim2 = w[:, [i + 1]]    #w1:i + 3 - 2
-        wim3 = w[:, [i]]    #w0 i+3-3
-        print(wi, wim1, wim2, wim3, 'ws')
+        wi = w[:, [j]]          #w3  i + 3
+        wim1 = w[:, [j-1]]    #w2 i + 3 - 1
+        wim2 = w[:, [j-2]]    #w1:i + 3 - 2
+        wim3 = w[:, [j-3]]    #w0 i+3-3
+
 
         # Adams Bashforth: wim1 = wi minus 1
-        wip1 = w[:, [i+3]] + ((dt / 24) * (55 * f(wi, ti, coeff) -
-                                         59 * f(wim1, tim1, coeff) +
-                                         37 * f(wim2, tim2, coeff) -
-                                         9 * f(wim3, tim3, coeff)))
-        w[:, [i + 3 + 1]] = wip1  # Store in w
+        wip1 = w[:, [j]] + ((dt / 24) * (55 * ftest(wi, ti, coeff) -
+                                         59 * ftest(wim1, tim1, coeff) +
+                                         37 * ftest(wim2, tim2, coeff) -
+                                         9 * ftest(wim3, tim3, coeff)))
+        w[:, [j + 1]] = wip1  # Store in w
 
     t.append(T)                                       # Append Final time step
-    # w= numpy vector, t = list
-    return (w, t)
+
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
+
+    return (wel1, wel2, t)
 
 
 '''
@@ -207,43 +265,48 @@ Three step method:
 '''
 
 
-def adams_pcec(f, w0, T, numTstep, coeff):
+def adams_pcec(ftest, w0, T, numTstep, coeff):
     dt = T/numTstep                                # delta t = step size = h
     w = np.zeros((w0.size, numTstep+1))                 # initialize w sol
     t = [dt * time for time in range(numTstep)]     # t for each timestep
-    rktemp = RK4(f, w0, T, 3, coeff)        # 4 initials   2x4
-    #print(rktemp)
+    rktemp = RK4(ftest, w0, T, 3, coeff)        # 4 initials   2x4
+
     w[:,0:4] = rktemp[0]
-    #print(w[:,0:4])                 # clean up 111-114
-    #print('w', w)
+
     for i, time in enumerate(t[3:]):
+        j = i + 3
         # Initialize ts
         ti = time
         tim1 = time - dt
         tim2 = time -2*dt
         tim3 = time - 3*dt
         tip1 = time + dt
-        #print(ti, tim1, tim2, tim3, tip1)
+
         # Initialize ws
-        wi = w[:, [i+3]]
-        wim1 = w[:, [i+3-1]]
-        wim2 = w[:, [i+3-2]]
-        wim3 = w[:, [i+3-3]]
+        wi = w[:, [j]]
+        wim1 = w[:, [j-1]]
+        wim2 = w[:, [j-2]]
+        wim3 = w[:, [j-3]]
         #print(wi, wim1, wim2, wim3)
 
         # Adams Bashforth: wim1 = wi minus 1
-        wip1p = w[:, [i+3]] + (dt/24)*(55*ftest(wi, ti, coeff) -
+        wip1p = w[:, [j]] + (dt/24)*(55*ftest(wi, ti, coeff) -
                                     59*ftest(wim1, tim1, coeff) +
                                     37*ftest(wim2, tim2, coeff) -
                                     9*ftest(wim3, tim3, coeff))
 
         # Adams Moulton: wip1 = wi plus 1
-        wip1c = w[:, [i+3]] + (dt/24)*(9*ftest(wip1p, tip1, coeff) +
+        wip1c = w[:, [j]] + (dt/24)*(9*ftest(wip1p, tip1, coeff) +
                                     19*ftest(wi, ti, coeff) -
                                     5*ftest(wim1, tim1, coeff) +
                                     ftest(wim2, tim2, coeff))
-        w[:, [i + 3 +1]] = wip1c               # Store in w, next step
-    return (w, t)
+        w[:, [j+1]] = wip1c               # Store in w, next step
+
+    # wel1 = satellite list, wel2 = fragment list
+    wel1 = np.ndarray.tolist(w[0, :])  # First element of vec and make list
+    wel2 = np.ndarray.tolist(w[1, :])  # 2nd element of vec and make list
+
+    return (wel1, wel2, t)
 
 
 
@@ -257,6 +320,7 @@ def adams_pcec(f, w0, T, numTstep, coeff):
 if __name__ == '__main__':
 
     # Part 1 Inputs
+
     alpha = 10**4           # alpha: number of fragments that exceed a few gs
     Beta = 70                    # Beta: number of primary fragments
     x = 3*10**(-10)           # Constant
@@ -264,59 +328,49 @@ if __name__ == '__main__':
     N0 = 2*10**3              # N(0), the IC for number of satellites
     n0 = 5*10**4              # n(0), the number of fragments
     w0 = np.array([N0, n0]).reshape((2,1))   # IC column vec
-    T = 300
+    T = 1
     numTstep = 1000
-    numTstepList = [100, 1000, 10 ** 4, 10 ** 5]
+    numTstepList = [10, 100, 1000, 10**4]        #small case
+    #numTstepList = [1000, 10**4, 10 **5, 10 ** 6]
     #numTstepList = [10**4, 10**5]
     coeff = (Beta, A, alpha, x)
 
-    print(euler(f, w0, T, numTstep, coeff), 'euler')  # 126723.69846774
-    print(comp_trap(f, w0, T, numTstep, coeff), 'comptrap')   # 126767.24327992
-    print(RK4(f, w0, T, numTstep, coeff), 'Rk4')     # 126767.21446085
-    #print(adams_moult3(f, w0, T, numTstep, coeff), 'moul3')  # 206092.29727389
-    print(adams_bash(f, w0, T, numTstep, coeff), 'bash')  #  126783.3287603
+    print(euler(f, w0, T, numTstep, coeff)[1], 'euler')  # 126723.69846774
+    #print(comp_trap(f, w0, T, numTstep, coeff), 'comptrap')   # 126767.24327992
+    #print(RK4(f, w0, T, numTstep, coeff), 'Rk4')     # 126767.21446085
+    print(adams_moult3(w0, T, numTstep, coeff)[1], 'moul3')  # 206092.29727389
+    #print(adams_bash(f, w0, T, numTstep, coeff), 'bash')  #  126783.3287603
     #print(adams_pcec(f, w0, T, numTstep, coeff), 'pcec')    # 211923.96086034
-    #print(ftestanswer(T))
+
 
     # Inputs for Error Checking
 
-    '''    
+    ''' 
     a = -6
     b = 2
     c = -20
     d = 6
-    X0 = -6              # N(0), the IC for number of satellites
-    Y0 = -20              # n(0), the number of fragments
+    X0 = 0.              # N(0), the IC for number of satellites
+    Y0 = 0.              # n(0), the number of fragments
     w0 = np.array([X0, Y0]).reshape((2,1))   # IC column vec
     T = 10
-    numTstep = 100
+    numTstep = 1000
     coeff = (a, b, c, d)
     '''
 
-    #print(euler(ftest, w0, T, numTstep, coeff), 'euler') #- verified
-    #print(comp_trap(f, w0, T, numTstep, coeff), 'comptrap') #- verified
-    #print(RK4(f, w0, T, numTstep, coeff)[0], 'Rk4') # -verified
-    #print(adams_moult3(f, w0, T, numTstep, coeff), 'moul3')  - wrong
-    #print(adams_bash(f, w0, T, numTstep, coeff), 'bash')  #  126783.3287603
-    #print(adams_pcec(f, w0, T, numTstep, coeff), 'pcec')    # 211923.96086034
+    #print(euler(ftest, w0, T, numTstep, coeff)[0], 'euler') #- verified
+    #print(comp_trap(ftest, w0, T, numTstep, coeff)[0], 'comptrap') #- verified
+    #print(RK4(ftest, w0, T, numTstep, coeff)[0], 'Rk4') # -verified
+    #print(adams_moult3(f, w0, T, numTstep, coeff), 'moul3')  #- wrong
+    #print(adams_bash(ftest, w0, T, numTstep, coeff)[0], 'bash')  #
+    #print(adams_pcec(ftest, w0, T, numTstep, coeff)[0], 'pcec')    #
     #print(ftestanswer(T))
 
 
     '''
     Section 2: Plotting 
     '''
-    #approx, ts = euler(f, w0, T, numTstep, coeff)
-    #print(approx[0], 'approx')
-    #plt.plot(ts, approx[0], label = "Euler")
-    #plt.show()
-
-    #approx, ts = euler(f, w0, T, numTstep, coeff)
-    #approx1, ts1 = comp_trap(f, w0, T, numTstep, coeff)
-    #print(approx[0], 'approx')
-    #print(approx1[0], 'comptrap')
-    #plt.plot(ts, approx[0], label = "comp_trap")
-    #plt.show()
-
+'''
     # List of Method Functions
     #method_list = [euler, comp_trap]
     method_list = [euler, comp_trap, RK4, adams_bash]
@@ -330,40 +384,87 @@ if __name__ == '__main__':
     # '4th Order Adams Bashforth','Adams Bashforth Moulton Predictor Corrector']
 
     # Alternate Version
-    row = [[] for Nvalue in numTstepList]  # Space allocation for list of lists
-    xs = [row for method in method_list]  # Space allocation for each method
+    row_sat = [[] for Nvalue in numTstepList]  # Space allo for list of lists
+    row_frag = [[] for step in numTstepList]  # Space allo for list of lists
+
+    print(row_sat)
+    # Space allocation for each method: satellites solution
+    xs_sat = [row_sat for method in method_list]
+    print(xs_sat)
+    # Space allocation for each method: Fragments solution
+    xs_frag = [row_frag for method in method_list]
+
 
     # Space allocation for the list of lists of timesteps
     ts = [[] for Nvalue in numTstepList]
+    print(ts)
 
     for i, method in enumerate(method_list):
-        for j, N in enumerate(numTstepList):
+        for j, numTstep in enumerate(numTstepList):
             # Extract approximation and the timestep for the method in methlist
-            (xs[i][j], ts[j]) = method(f, w0, T, numTstep, coeff)
-            #print(xs[i][j][0], xs[i][j][1], ts[j], 'gothere')
+            xs_sat[i][j], xs_frag[i][j], ts[j] = method(f, w0, T, numTstep,
+                                                        coeff)
 
-    #print(ts[0], 'here')
     # For loop to increment plot number and access Method name to plot
-    print(xs)
+    #print(xs)
 
-    for plotnum, (methName, sol) in enumerate(zip(methodnames, xs)):
-        print(methName, sol, 'here')
-        #plt.figure(plotnum+1)
-        #plt.plot(ts[plotnum], xs[plotnum][plotnum][0], 'o', label =
-        #f"Satellite{methName}")
-        #plt.plot(ts[plotnum], xs[plotnum][plotnum][1], label=
-        #f"Debris{methName}")
-        #plt.legend(loc='upper left')
-        #plt.title(f'Approximation vs Time using {methName} Method')
-        #plt.xlabel('Time')  # Label x-axis
-        #plt.ylabel('Approximation')  # Label y-axis
+# Alternative attempt
+    for plotnum, (time, numTstep) in enumerate(zip(
+                         ts, numTstepList )):
+        plt.figure(plotnum + 1)
+        for i,  (methName, sol_sat, sol_frag) in enumerate(zip(methodnames,
+                                                               xs_sat,
+                                                               xs_frag)):
+            plt.figure(plotnum + 1)
+            plt.plot(ts[plotnum], sol_sat[plotnum], 'o', label=
+            f"Satellite{methName}")
+            plt.plot(ts[plotnum], sol_frag[plotnum], label=
+            f"Debris{methName}")
+            plt.legend(loc='upper left')
+            plt.title(f'Approximation vs Time with {numTstep} steps and '
+                      f'{T/numTstep} step size')
+            plt.xlabel('Time')  # Label x-axis
+            plt.ylabel('Approximation')  # Label y-axis
     #plt.show()
-
-
-
-
-# Errror plotting
 '''
+
+# Attempt
+'''
+    for plotnum, (methName, sol_sat, sol_frag) in enumerate(zip(methodnames,
+                                                            xs_sat, xs_frag)):
+        
+        #print(methName, sol_sat, 'here')
+        #print(methName,  sol_frag, 'here2')
+        plt.figure(plotnum+1)
+        plt.plot(ts[plotnum], sol_sat[plotnum], 'o', label =
+        f"Satellite{methName}")
+        plt.plot(ts[plotnum], sol_frag[plotnum], label=
+        f"Debris{methName}")
+        plt.legend(loc='upper left')
+        plt.title(f'Approximation vs Time using {methName} Method')
+        plt.xlabel('Time')  # Label x-axis
+        plt.ylabel('Approximation')  # Label y-axis
+    plt.show()
+'''
+
+
+# Error plotting
+# 2 types: 1) vs euler with super fine step size, 2) vs given tpoints from pap
+'''
+    # Reference 
+    ref_sol = euler(f, w0, 500, 10**10, coeff), 'euler')
+    
+    # Alternate Version
+    row_sat_er = [[] for Nvalue in numTstepList]  # Space allo for list of lists
+    row_frag_er = [[] for step in numTstepList]  # Space allo for list of lists
+
+    #print(row)
+    # Space allocation for each method: satellites solution
+    xs_sat_er = [row_sat_er for method in method_list]
+
+    # Space allocation for each method: Fragments solution
+    xs_frag_er = [row_frag_er for method in method_list]
+    
     # Space allocation for list of errors for each N and method
     errorlist = [[0.0 for nvalue in numTstepList] for method in method_list]
 
@@ -372,12 +473,12 @@ if __name__ == '__main__':
 
     # For loop to calculate the error between the approximation and exact sol
     for i, method in enumerate(method_list):
-        for j, N in enumerate(numTstepList):
+        for j, numTstep in enumerate(numTstepList):
             # Extract approximation and the timestep for the method in methlist
             (xs[i][j], ts[j]) = method(f, w0, T, numTstep, coeff)
 
             # Calculate error and assign to index in the list
-            errorlist[i][j] = abs(exactsol - xs[i][j][-1])
+            errorlist[i][j] = abs(refsol - xs[i][j][-1])
 
     # For loop to increment plot number and access Method name to plot
     for plotnum, methName in enumerate(methodnames):
@@ -391,6 +492,22 @@ if __name__ == '__main__':
         plt.savefig(f'Math361FinalProject{methName}.png', bbox_inches='tight')
 
     # plt.show()
+    
+    
+    
+    
+# writing individual plots
+    #approx, ts = euler(f, w0, T, numTstep, coeff)
+    #print(approx[0], 'approx')
+    #plt.plot(ts, approx[0], label = "Euler")
+    #plt.show()
+
+    #approx, ts = euler(f, w0, T, numTstep, coeff)
+    #approx1, ts1 = comp_trap(f, w0, T, numTstep, coeff)
+    #print(approx[0], 'approx')
+    #print(approx1[0], 'comptrap')
+    #plt.plot(ts, approx[0], label = "comp_trap")
+    #plt.show()
 '''
 
 
