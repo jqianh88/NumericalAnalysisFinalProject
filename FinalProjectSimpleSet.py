@@ -401,7 +401,29 @@ if __name__ == '__main__':
                 times_list[j] = time
 
         # Get Errors: based on RK4, keep track of RK4
-                err_list[i].append(avg_percent_error(z, rk4_sol))
+                per_err_list[i].append(avg_percent_error(z, rk4_sol))
+
+
+
+        # Plotting RK4:
+        exprk4, trk4 = RK4(func, w0, T, 10 ** 3, coeff)
+        for i, graph in enumerate(graphnames):
+            plt.figure(3)
+            plt.clf()
+            plt.plot(trk4, exprk4[i])
+            plt.title(f'RK4 Expected {graph}')
+
+
+        # Plot Percent Error
+        plt.figure(4)
+        plt.clf()  # Clear the plot
+        for i, name in enumerate(methodnames):
+            plt.loglog(numTstepList, per_err_list[i], label=f"{name}")
+            plt.legend(loc='upper left')
+        plt.title(f'Percent Error vs N with RK4 as Expected Result')
+        plt.xlabel('N')  # Label x-axis
+        plt.ylabel('Percent Error')  # Label y-axis
+            #plt.savefig(f'Math361FinalProject{methName}.png', bbox_inches='tight')
 
 
 
@@ -409,11 +431,13 @@ if __name__ == '__main__':
         for k, graph in enumerate(graphnames):
             plt.figure(k+1)
             for j, name in enumerate(methodnames):
-                plt.plot(times_list[j], sol_list[j][k,:], label= f' {name}')
+                plt.plot(times_list[j], sol_list[j][k, :], label= f' {name}')
                 plt.title(f'{graph}')
                 #plt.plot(time, sol_list2[k][j], label=f'Fragments with {name}')
                 plt.legend(loc='upper left')
             plt.show()
+
+
 
 
 
