@@ -426,12 +426,17 @@ if __name__ == '__main__':
             #plt.savefig(f'Math361FinalProject{methName}.png', bbox_inches='tight')
 
 
-
+        methodnames = ['Euler', 'Composite Trapezoid', 'RK4', 'Adams ' 
+                'Bashforth','Predictor Corrector']
         # Plotting:
         for k, graph in enumerate(graphnames):
             plt.figure(k+1)
+            print(graph)
             for j, name in enumerate(methodnames):
-                plt.plot(times_list[j], sol_list[j][k, :], label= f' {name}')
+                print(name)
+                print(sol_list[j][k][0], 'this')
+                print(times_list[0])
+                plt.plot(times_list[k], sol_list[j][k][0], label= f' {name}')
                 plt.title(f'{graph}')
                 #plt.plot(time, sol_list2[k][j], label=f'Fragments with {name}')
                 plt.legend(loc='upper left')
