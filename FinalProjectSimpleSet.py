@@ -321,11 +321,11 @@ if __name__ == '__main__':
     Tests: Do not Touch!!!!!!!!
     '''
     # Inputs for Error Checking:
-    run_tests = False
+    run_tests = True
 
     test_w0 = np.array([0., 0.]).reshape((2,1))   # IC column vec
-    test_T = 10
-    test_numTsteplist = [10**3, 10**4, 10**5]  #, 10**6]
+    test_T = 100
+    test_numTsteplist = [10**3, 10**4, 10**5, 10**6]
     test_coeff = (-6, 2, -20, 6)
 
 
@@ -352,11 +352,12 @@ if __name__ == '__main__':
         plt.clf()  # Clear the plot
         for i, name in enumerate(methodnames):
             plt.loglog(test_numTsteplist, err_list[i], label=f"{name}")
-            plt.legend(loc='upper left')
-            plt.title(f'Error vs N using {name} Method')
-            plt.xlabel('N')  # Label x-axis
+            plt.legend(loc='best', prop={'size': 6})
+            plt.title(f'Error vs N of All Methods')
+            plt.xlabel('N (Number of Steps)')  # Label x-axis
             plt.ylabel('Error')  # Label y-axis
-            #plt.savefig(f'Math361FinalProject{methName}.png', bbox_inches='tight')
+            plt.savefig(f'Math361FinalProjectTestSetError{name}.png',
+             bbox_inches='tight')
         plt.show()
 
 
@@ -372,12 +373,12 @@ if __name__ == '__main__':
     w0 = np.array([N0, n0]).reshape((2, 1))  # IC column vec
     T = 100
     numTstep = 100          #play with timestep, which better for presentation
-    numTstepList = [10, 100, 1000, 10 ** 4]  # 10 **5, 10 ** 6]
+    numTstepList = [1000, 10000, 10 ** 5, 10 ** 6]
     coeff = (Beta, A, alpha, x)
 
     run_prints = True
-    method_list = [euler, comp_trap, adams_bash, adams_pcec]
-    methodnames = ['Euler', 'Composite Trapezoid', 'Adams ' 
+    method_list = [euler, comp_trap, RK4, adams_bash, adams_pcec]
+    methodnames = ['Euler', 'Composite Trapezoid', 'RK4', 'Adams ' 
                 'Bashforth','Predictor Corrector']
     func = f         # Use this to change for advanced and add to gnames
     graphnames = ['Satellites', 'Fragments']
@@ -408,10 +409,14 @@ if __name__ == '__main__':
         # Plotting RK4:
         exprk4, trk4 = RK4(func, w0, T, 10 ** 3, coeff)
         for i, graph in enumerate(graphnames):
-            plt.figure(3)
+            plt.figure(i+1)
             plt.clf()
             plt.plot(trk4, exprk4[i])
-            plt.title(f'RK4 Expected {graph}')
+            plt.xlabel('Time (Years)')  # Label x-axis
+            plt.ylabel(f'{graph}')  # Label y-axis
+            plt.title(f'RK4 Expected {graph} with N = 10^3')
+            plt.savefig(f'Math361FinalProjectRK4Expected{graph}Simple.png',
+            bbox_inches='tight')
 
 
         # Plot Percent Error
@@ -419,28 +424,29 @@ if __name__ == '__main__':
         plt.clf()  # Clear the plot
         for i, name in enumerate(methodnames):
             plt.loglog(numTstepList, per_err_list[i], label=f"{name}")
-            plt.legend(loc='upper left')
+            plt.legend(loc='best', prop = {'size': 6})
         plt.title(f'Percent Error vs N with RK4 as Expected Result')
-        plt.xlabel('N')  # Label x-axis
+        plt.xlabel('N (Number of Steps)')  # Label x-axis
         plt.ylabel('Percent Error')  # Label y-axis
-            #plt.savefig(f'Math361FinalProject{methName}.png', bbox_inches='tight')
+        plt.savefig(f'Math361FinalProjectPercentErrorRk4baseSimple.png',
+                    bbox_inches='tight')
 
 
         methodnames = ['Euler', 'Composite Trapezoid', 'RK4', 'Adams ' 
                 'Bashforth','Predictor Corrector']
+
         # Plotting:
         for k, graph in enumerate(graphnames):
-            plt.figure(k+1)
-            print(graph)
+            plt.figure(k+5)
             for j, name in enumerate(methodnames):
-                print(name)
-                print(sol_list[j][k][0], 'this')
-                print(times_list[0])
                 plt.plot(times_list[k], sol_list[j][k][0], label= f' {name}')
-                plt.title(f'{graph}')
-                #plt.plot(time, sol_list2[k][j], label=f'Fragments with {name}')
-                plt.legend(loc='upper left')
-            plt.show()
+                plt.title(f'{graph} vs Time with Each Method')
+                plt.xlabel('Time (Years)')  # Label x-axis
+                plt.ylabel(f'{graph}')  # Label y-axis
+                plt.legend(loc='best')
+            plt.savefig(f'Math361FinalProject{graph}MethodTimeSimple.png',
+            bbox_inches='tight')
+        plt.show()
 
 
 
